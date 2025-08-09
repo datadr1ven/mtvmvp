@@ -1,0 +1,247 @@
+<html>
+
+<head>
+	<title>McLaren Track Viewer (MTV) Homage</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<!-- Google tag (gtag.js) -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-DV9BF3P4RZ"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag() { dataLayer.push(arguments); }
+		gtag('js', new Date());
+
+		gtag('config', 'G-DV9BF3P4RZ');
+	</script>
+	<meta name='impact-site-verification' value='b579a4b5-b177-40c2-a363-59b57f39997b'>
+	<script src="./topnav.js"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	<link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+
+	<canvas id="mtv">
+	</canvas>
+	<canvas id="tv">
+	</canvas>
+
+	<script src="mtv-data.js"></script>
+	<script>
+		console.log(interval_data.length);
+		interval_data.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+		for (let idx = 0; idx < interval_data.length - 1; idx += 1) {
+			//console.log('comparing ' + interval_data[idx]['date'] + ' to ' + interval_data[idx + 1]['date']);
+			if ((new Date(interval_data[idx + 1]['date]'])) - new Date(interval_data[idx]['date']) < 0) {
+				console.log('problem, need to sort!');
+			}
+		}
+		console.log('done w monotonicity test');
+
+		driver_info = {}
+		for (let idx = 0; idx < driver_data.length; idx += 1) {
+			driver_info[driver_data[idx]['driver_number']] = driver_data[idx];
+		}
+
+		//year->race name->driver->lap
+		//picker will let you choose race/lap,
+		//which will give us session_key, date
+		//
+		// let's hardcode 2024, miami, hamilton, 14
+		//https://api.openf1.org/v1/laps?session_key=9507&driver_number=44&lap_number=14
+		//rv has date_start and lap_duration, compute date_end
+
+		const driver_to_track = "44";
+
+		const date_start = new Date(lap_data[0]['date_start']);
+		//lap_duration: 93.693
+		let date_end = new Date(lap_data[0]['date_start']);
+		date_end.setMilliseconds(date_end.getMilliseconds() + (lap_data[0]['lap_duration'] * 1000));
+		//SHORT: const date_end = "2024-05-05T20:24:28.049000+00:00";
+		//   - interval data
+		//https://api.openf1.org/v1/intervals?session_key=9507&date>DATE_START&date<DATE_END
+		//   - location data
+		//https://api.openf1.org/v1/location?session_key=9507&date>DATE_START&date<DATE_END		
+		//   - driver data (colors, 3letter)
+		//https://api.openf1.org/v1/drivers?session_key=9507
+		//
+		//that should be all the data
+		//then we start the clock
+		//  ...and keep head on interval and location
+		//  ...and maintain the latest_known for each display
+
+		function handleResize() {
+			const canvas_height = window.innerHeight * .8;
+			document.getElementById('mtv').width = window.innerWidth / 2.0;
+			document.getElementById('mtv').height = canvas_height;
+			document.getElementById('tv').width = window.innerWidth / 2.0;
+			document.getElementById('tv').height = canvas_height;
+		}
+
+		window.addEventListener('resize', handleResize);
+
+		const mtv_canvas = document.getElementById('mtv');
+		const mtv_ctx = mtv_canvas.getContext('2d');
+
+		const tv_canvas = document.getElementById('tv');
+		const tv_ctx = tv_canvas.getContext('2d');
+
+		mtv_ctx.canvas.width = window.innerWidth / 2.0;
+		tv_ctx.canvas.width = window.innerWidth / 2.0;
+
+		const canvas_height = window.innerHeight * .8;
+		mtv_ctx.canvas.height = canvas_height;
+		tv_ctx.canvas.height = canvas_height;
+
+		function draw_line(ctx, radius, angle, length, color, driver_number) {
+
+			const centerX = ctx.canvas.width / 2;
+			const centerY = ctx.canvas.height / 2;
+			const lineLength = radius + (length / 2); // Extend beyond the circle
+
+			const lineStartX = centerX + (lineLength - length) * Math.cos(angle);
+			const lineStartY = centerY + (lineLength - length) * Math.sin(angle);
+
+			const lineEndX = centerX + lineLength * Math.cos(angle);
+			const lineEndY = centerY + lineLength * Math.sin(angle);
+
+			// Draw the perpendicular line segment
+			ctx.beginPath();
+			ctx.moveTo(lineStartX, lineStartY); // Start from the center of the circle
+			ctx.lineTo(lineEndX, lineEndY);
+			ctx.strokeStyle = '#' + color;
+			ctx.lineWidth = 4;
+			ctx.closePath();
+			ctx.stroke();
+			ctx.beginPath();
+
+			ctx.fillStyle = "white";
+			if (lineStartX > lineEndX) {
+				ctx.fillText(driver_info[driver_number]['name_acronym'], lineStartX, lineStartY);
+			} else {
+				ctx.fillText(driver_info[driver_number]['name_acronym'], lineEndX, lineEndY);
+			}
+		}
+
+		function animate_mtv(intervals_state, cur_time) {
+
+			// Clear the canvas
+			mtv_ctx.fillStyle = "#000000";
+			mtv_ctx.fillRect(0, 0, mtv_canvas.width, mtv_canvas.height);
+
+			const centerX = mtv_ctx.canvas.width / 2;
+			const centerY = mtv_ctx.canvas.height / 2;
+			const radius = Math.min(centerX / 1.5, centerY / 1.5);
+			mtv_ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+			mtv_ctx.lineWidth = 20;
+			mtv_ctx.strokeStyle = 'gray';
+			mtv_ctx.stroke();
+
+			draw_line(mtv_ctx, radius,
+				((Math.PI * 2 * (running_clock))
+					/
+					lap_data[0]['lap_duration'])
+				-
+				(Math.PI / 2.0),
+				40, driver_info[driver_to_track]['team_colour'], driver_to_track);
+
+			Object.keys(interval_state).forEach(function (driver_number) {
+				if (driver_to_track in interval_state) {
+
+					draw_line(mtv_ctx, radius,
+						((Math.PI * 2 * (running_clock
+							+
+							(interval_state[driver_number]
+								-
+								interval_state[driver_to_track]
+							)))
+							/
+							lap_data[0]['lap_duration'])
+						-
+						(Math.PI / 2.0),
+						40, driver_info[driver_number]['team_colour'], driver_number);
+				}
+			});
+		}
+
+		function animate_tv(locations_state) {
+
+			// Clear the canvas
+			tv_ctx.fillStyle = "#000000";
+			tv_ctx.fillRect(0, 0, tv_canvas.width, tv_canvas.height);
+
+			//requestAnimationFrame(animate_tv);
+		}
+		function sleep(ms) {
+			return new Promise(resolve => setTimeout(resolve, ms));
+		}
+
+		let interval_state = {};
+		let location_state = {};
+		let running_clock = 0.0;
+		const increment = .25;
+
+		async function do_the_things_and_wait(p_cur_time, p_date_date_end, p_interval_idx, p_location_idx) {
+
+			let m_interval_idx = p_interval_idx;
+			let m_location_idx = p_location_idx;
+
+			//TODO: will barf if internal falls off end
+			while (new Date(interval_data[m_interval_idx]['date']) < p_cur_time) {
+				interval_state[interval_data[m_interval_idx]['driver_number']] = interval_data[m_interval_idx]['gap_to_leader'];
+				//TODO: this could fall off end
+				m_interval_idx += 1;
+			}
+
+			//console.log(p_cur_time);
+			//console.log(interval_state);
+
+			animate_mtv(interval_state, running_clock);
+			running_clock += increment;
+
+			if (p_cur_time > date_end) {
+				console.log('exiting do_the_things');
+			} else {
+				p_cur_time.setMilliseconds(p_cur_time.getMilliseconds() + (increment * 1000));
+				await sleep(increment * 1000);
+				do_the_things_and_wait(p_cur_time, p_date_date_end, m_interval_idx, m_location_idx);
+			}
+		}
+
+		do_the_things_and_wait(date_start, date_end, 0, 0);
+		//animate_mtv(interval_state);
+		//animate_tv(location_state);
+
+		//console.log(interval_data[0].date);
+		//console.log(location_data[0].date);
+
+	</script>
+
+	<!-- Top Navigation Menu -->
+
+	<div class="topnav">
+		<a href="javascript:void(0);" class="active">
+			<h1>McLaren Track Viewer (MTV)</h1>
+		</a>
+		<!-- Navigation links (hidden by default) -->
+		<!-- <script src="./grid.js"></script> -->
+		<div id="myLinks">
+			<a href="javascript:void(0);" onclick="showAbout();">About</a>
+			<a href="javascript:void(0);" onclick="showDisclaimer();">Disclaimer</a>
+		</div>
+		<!-- "Hamburger menu" / "Bar icon" to toggle the navigation links -->
+		<a href="javascript:void(0);" class="icon" onclick="myFunction();">
+			<i class="fa fa-bars"></i>
+		</a>
+	</div>
+	<div class="content">
+		<p>This page shows a modern recreation of the MTV. A blog post describing this tool is <a
+				href="https://dev.to/datadr1ven/leveraging-redis-80s-new-time-series-capabilities-in-a-real-time-formula-1-dashboard-p6b">here
+			</a>
+		</p>
+	</div>
+</body>
+
+</html>
