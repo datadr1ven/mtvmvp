@@ -8,10 +8,10 @@ function myFunction() {
   }
 }
 
-function showAbout(){
-    alert("This tool uses linear programming to compute the static (no substitutions) team that scores maximally over the chosen race interval");
+function showAbout() {
+  alert("This tool uses interval data from openf1.org to populate a widget inspired by the McLaren Track Viewer (invented in 2001)");
 }
 
-function showDisclaimer(){
-    alert("This is an unofficial site, with no affiliation to Formula One (or any of their companies or brands). The author of this capability is simply a fan who enjoys playing the fantasy game. This information is provided with no guarantees as to its' accuracy, use at your own risk");
+function showDisclaimer() {
+  alert("This is an unofficial site, with no affiliation to Formula One (or any of their companies or brands). The author of this capability is simply a fan. This information is provided with no guarantees as to its' accuracy, use at your own risk");
 }

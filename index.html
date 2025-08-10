@@ -29,16 +29,33 @@
 
 	<script src="mtv-data.js"></script>
 	<script>
-		console.log(interval_data.length);
-		interval_data.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-		for (let idx = 0; idx < interval_data.length - 1; idx += 1) {
-			//console.log('comparing ' + interval_data[idx]['date'] + ' to ' + interval_data[idx + 1]['date']);
-			if ((new Date(interval_data[idx + 1]['date]'])) - new Date(interval_data[idx]['date']) < 0) {
-				console.log('problem, need to sort!');
+		let min_x = 1000000;
+		let min_y = 1000000;
+		let max_x = -1000000;
+		let max_y = -1000000;
+		for (let idx = 0; idx < location_data.length; idx += 1) {
+			const x = location_data[idx]['x'];
+			const y = location_data[idx]['y'];
+			if (x < min_x) {
+				min_x = x;
+			}
+			if (x > max_x) {
+				max_x = x;
+			}
+			if (y < min_y) {
+				min_y = y;
+			}
+			if (y > max_y) {
+				max_y = y;
 			}
 		}
-		console.log('done w monotonicity test');
+		//console.log('bounding box [' + min_x + ',' + min_y + '->' + max_x + ',' + max_y + ']');
+		const native_width = max_x - min_x;
+		const native_height = max_y - min_y;
+
+		const native_aspect_ratio = native_width / native_height;
+
 
 		driver_info = {}
 		for (let idx = 0; idx < driver_data.length; idx += 1) {
@@ -94,6 +111,20 @@
 		const canvas_height = window.innerHeight * .8;
 		mtv_ctx.canvas.height = canvas_height;
 		tv_ctx.canvas.height = canvas_height;
+
+
+		const tv_canvas_aspect_ratio = tv_ctx.canvas.width / tv_ctx.canvas.height;
+
+		console.log('track aspect ratio:' + native_aspect_ratio);
+		console.log('window aspect ratio: ' + tv_canvas_aspect_ratio)
+
+		if (native_aspect_ratio > tv_canvas_aspect_ratio) {
+			//scale by width, center by height
+			//transformA
+		} else {
+			//scale by height, center by width
+			//transformB
+		}
 
 		function draw_line(ctx, radius, angle, length, color, driver_number) {
 
@@ -153,9 +184,9 @@
 					draw_line(mtv_ctx, radius,
 						((Math.PI * 2 * (running_clock
 							+
-							(interval_state[driver_number]
+							(interval_state[driver_to_track]
 								-
-								interval_state[driver_to_track]
+								interval_state[driver_number]
 							)))
 							/
 							lap_data[0]['lap_duration'])
@@ -166,13 +197,34 @@
 			});
 		}
 
+		const border = 30;
+
 		function animate_tv(locations_state) {
 
 			// Clear the canvas
 			tv_ctx.fillStyle = "#000000";
 			tv_ctx.fillRect(0, 0, tv_canvas.width, tv_canvas.height);
 
-			//requestAnimationFrame(animate_tv);
+			Object.keys(location_state).forEach(function (driver_number) {
+
+				let draw_x = location_state[driver_number][0];
+				let draw_y = location_state[driver_number][1];
+
+				draw_x += (-min_x);
+				draw_y += (-min_y);
+				draw_x = draw_x * ((tv_ctx.canvas.width - (2 * border)) / native_width);
+				draw_y = draw_y * ((tv_ctx.canvas.height - (2 * border)) / native_height);
+				draw_x += border;
+				draw_y += border;
+				tv_ctx.beginPath();
+				tv_ctx.arc(draw_x, draw_y, 5, 0, 2 * Math.PI, false);
+				tv_ctx.strokeStyle = 'gray';
+				tv_ctx.lineWidth = 2;
+				tv_ctx.fillStyle = '#' + driver_info[driver_number]['team_colour']; //
+				tv_ctx.fill();
+				tv_ctx.stroke();
+				tv_ctx.fillText(driver_info[driver_number]['name_acronym'], draw_x + 10, draw_y);
+			});
 		}
 		function sleep(ms) {
 			return new Promise(resolve => setTimeout(resolve, ms));
@@ -181,7 +233,7 @@
 		let interval_state = {};
 		let location_state = {};
 		let running_clock = 0.0;
-		const increment = .25;
+		const increment = .15;
 
 		async function do_the_things_and_wait(p_cur_time, p_date_date_end, p_interval_idx, p_location_idx) {
 
@@ -194,18 +246,25 @@
 				//TODO: this could fall off end
 				m_interval_idx += 1;
 			}
+			while (new Date(location_data[m_location_idx]['date']) < p_cur_time) {
+				location_state[location_data[m_location_idx]['driver_number']] = [location_data[m_location_idx]['x'], location_data[m_location_idx]['y']];
+				//TODO: this could fall off end
+				m_location_idx += 1;
+			}
 
 			//console.log(p_cur_time);
 			//console.log(interval_state);
 
 			animate_mtv(interval_state, running_clock);
+			animate_tv(location_state);
 			running_clock += increment;
 
 			if (p_cur_time > date_end) {
 				console.log('exiting do_the_things');
 			} else {
 				p_cur_time.setMilliseconds(p_cur_time.getMilliseconds() + (increment * 1000));
-				await sleep(increment * 1000);
+				//await sleep(increment * 1000);
+				await sleep(100);
 				do_the_things_and_wait(p_cur_time, p_date_date_end, m_interval_idx, m_location_idx);
 			}
 		}
