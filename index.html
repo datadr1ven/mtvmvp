@@ -136,7 +136,7 @@
 				ctx.arc(
 					centerX + (lineLength - length / 2) * Math.cos(angle),
 					centerY + (lineLength - length / 2) * Math.sin(angle),
-					25, 0, 2 * Math.PI, false);
+					20, 0, 2 * Math.PI, false);
 				ctx.strokeStyle = 'gray';
 				ctx.lineWidth = 2;
 				ctx.fillStyle = '#00FFFF';
@@ -217,7 +217,7 @@
 					lap_data[0]['lap_duration'])
 				-
 				(Math.PI / 2.0),
-				40, driver_info[driver_to_track]['team_colour'], driver_to_track, true);
+				20, driver_info[driver_to_track]['team_colour'], driver_to_track, true);
 
 			draw_line(mtv_ctx, radius,
 				((Math.PI * 2 * (running_clock))
@@ -225,7 +225,7 @@
 					lap_data[0]['lap_duration'])
 				-
 				(Math.PI / 2.0),
-				40, driver_info[driver_to_track]['team_colour'], driver_to_track, false);
+				20, 'FF00FF', driver_to_track, false);
 
 
 			Object.keys(interval_state).forEach(function (driver_number) {
@@ -242,7 +242,7 @@
 							lap_data[0]['lap_duration'])
 						-
 						(Math.PI / 2.0),
-						40, driver_info[driver_number]['team_colour'], driver_number);
+						20, driver_info[driver_number]['team_colour'], driver_number);
 				}
 			});
 		}
