@@ -54,9 +54,6 @@
 		const native_width = max_x - min_x;
 		const native_height = max_y - min_y;
 
-		const native_aspect_ratio = native_width / native_height;
-
-
 		driver_info = {}
 		for (let idx = 0; idx < driver_data.length; idx += 1) {
 			driver_info[driver_data[idx]['driver_number']] = driver_data[idx];
@@ -98,7 +95,7 @@
 		//  ...and maintain the latest_known for each display
 
 		function handleResize() {
-			const canvas_height = window.innerHeight * .8;
+			const canvas_height = window.innerHeight;
 			document.getElementById('mtv').width = window.innerWidth / 2.0;
 			document.getElementById('mtv').height = canvas_height;
 			document.getElementById('tv').width = window.innerWidth / 2.0;
@@ -116,20 +113,9 @@
 		mtv_ctx.canvas.width = window.innerWidth / 2.0;
 		tv_ctx.canvas.width = window.innerWidth / 2.0;
 
-		const canvas_height = window.innerHeight * .8;
+		const canvas_height = window.innerHeight;
 		mtv_ctx.canvas.height = canvas_height;
 		tv_ctx.canvas.height = canvas_height;
-
-
-		const tv_canvas_aspect_ratio = tv_ctx.canvas.width / tv_ctx.canvas.height;
-
-		if (native_aspect_ratio > tv_canvas_aspect_ratio) {
-			//scale by width, center by height
-			//transformA
-		} else {
-			//scale by height, center by width
-			//transformB
-		}
 
 		function draw_line(ctx, radius, angle, length, color, driver_number, cyan_ball) {
 
@@ -386,7 +372,7 @@
 
 	<div class="topnav">
 		<a href="javascript:void(0);" class="active">
-			<h1>McLaren Track Viewer (MTV)</h1>
+			<h1>McLaren Track Viewer (MTV) Homage</h1>
 		</a>
 		<!-- Navigation links (hidden by default) -->
 		<!-- <script src="./grid.js"></script> -->
