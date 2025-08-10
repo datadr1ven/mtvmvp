@@ -201,6 +201,7 @@
 			mtv_ctx.font = '14px sans-serif';
 			const text = 'Lap ' + lap_data[0]['lap_number'];
 			const metrics = mtv_ctx.measureText(text);
+			//DRAWS lap #
 			mtv_ctx.fillText(text, centerX - (metrics.width / 2), centerY - metrics.fontBoundingBoxAscent);
 			const formattedTime = date_cur_time.toLocaleTimeString('en-US', {
 				hour: '2-digit',
@@ -218,9 +219,11 @@
 			// Combine the formatted time and milliseconds
 			const fullTimeWithMillis = `${formattedTime}.${paddedMilliseconds}`;
 			const metrics_time = mtv_ctx.measureText(fullTimeWithMillis);
+			//DRAWS running lap time
 			mtv_ctx.fillText(fullTimeWithMillis, centerX - (metrics_time.width / 2), centerY);
 
 
+			//DRAWS circle
 			mtv_ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
 			mtv_ctx.lineWidth = 20;
 			mtv_ctx.strokeStyle = 'gray';
@@ -228,34 +231,37 @@
 			mtv_ctx.beginPath();
 
 
-			draw_line(mtv_ctx, radius, Math.PI * 3 / 2, 65, '32CD32', null);
+			const subtractor = (cur_time / lap_data[0]['lap_duration']) * Math.PI * 2;
 
+			//DRAWS first sector mark
+			draw_line(mtv_ctx, radius, (Math.PI * 3 / 2) - subtractor, 65, '32CD32', null);
+
+			//DRAWS second sector mark
 			draw_line(mtv_ctx, radius,
 				(lap_data[0]['duration_sector_1'] / lap_data[0]['lap_duration']) * Math.PI * 2
 				-
-				(Math.PI / 2),
+				(Math.PI / 2) - subtractor,
 				65, '32CD32', null);
 
+			//DRAWS third sector mark
 			draw_line(mtv_ctx, radius,
 				((lap_data[0]['duration_sector_1'] + lap_data[0]['duration_sector_2']) / lap_data[0]['lap_duration']) * Math.PI * 2
 				-
-				(Math.PI / 2),
+				(Math.PI / 2) - subtractor,
 				65, '32CD32', null);
 
-			//duration_sector_1
-			//duration_sector_2
-			//lap_duration
 
+			//DRAWS cyan ball
 			draw_line(mtv_ctx, radius,
 				((Math.PI * 2 * (running_clock - 22.0))
 					/
 					lap_data[0]['lap_duration'])
 				-
-				(Math.PI / 2.0),
+				(Math.PI / 2.0) - subtractor,
 				20, driver_info[driver_to_track]['team_colour'], driver_to_track, true);
 
 
-
+			//DRAWS each of the driver lines besides tracked driver
 			Object.keys(interval_state).forEach(function (driver_number) {
 				if (driver_to_track in interval_state) {
 					if (driver_number != driver_to_track) {
@@ -269,7 +275,7 @@
 								/
 								lap_data[0]['lap_duration'])
 							-
-							(Math.PI / 2.0),
+							(Math.PI / 2.0) - subtractor,
 							20, driver_info[driver_number]['team_colour'], driver_number);
 					}
 				} else {
@@ -290,12 +296,13 @@
 
 				}
 			});
+			//DRAWS tracked driver
 			draw_line(mtv_ctx, radius,
 				((Math.PI * 2 * (running_clock))
 					/
 					lap_data[0]['lap_duration'])
 				-
-				(Math.PI / 2.0),
+				(Math.PI / 2.0) - subtractor,
 				20, 'FF00FF', driver_to_track, false);
 
 		}
