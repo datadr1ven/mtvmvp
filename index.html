@@ -276,7 +276,9 @@
 			draw_x += (-min_x);
 			draw_y += (-min_y);
 			draw_x = draw_x * ((tv_ctx.canvas.width - (2 * border)) / native_width);
-			draw_y = draw_y * ((tv_ctx.canvas.height - (2 * border)) / native_height);
+			draw_y = draw_y * ((tv_ctx.canvas.width - (2 * border)) / native_width);
+			draw_y = draw_y + ((tv_ctx.canvas.height / 2) -
+				((native_height / 2) * ((tv_ctx.canvas.width - (2 * border)) / native_width)));
 			draw_x += border;
 			draw_y += border;
 			tv_ctx.moveTo(draw_x, draw_y);
@@ -286,7 +288,9 @@
 				draw_x += (-min_x);
 				draw_y += (-min_y);
 				draw_x = draw_x * ((tv_ctx.canvas.width - (2 * border)) / native_width);
-				draw_y = draw_y * ((tv_ctx.canvas.height - (2 * border)) / native_height);
+				draw_y = draw_y * ((tv_ctx.canvas.width - (2 * border)) / native_width);
+				draw_y = draw_y + ((tv_ctx.canvas.height / 2) -
+					((native_height / 2) * ((tv_ctx.canvas.width - (2 * border)) / native_width)));
 				draw_x += border;
 				draw_y += border;
 				tv_ctx.lineTo(draw_x, draw_y);
@@ -296,12 +300,14 @@
 			draw_x += (-min_x);
 			draw_y += (-min_y);
 			draw_x = draw_x * ((tv_ctx.canvas.width - (2 * border)) / native_width);
-			draw_y = draw_y * ((tv_ctx.canvas.height - (2 * border)) / native_height);
+			draw_y = draw_y * ((tv_ctx.canvas.width - (2 * border)) / native_width);
+			draw_y = draw_y + ((tv_ctx.canvas.height / 2) -
+				((native_height / 2) * ((tv_ctx.canvas.width - (2 * border)) / native_width)));
 			draw_x += border;
 			draw_y += border;
 			tv_ctx.lineTo(draw_x, draw_y);
 			tv_ctx.strokeStyle = "gray";
-			tv_ctx.lineWidth = 12;
+			tv_ctx.lineWidth = 9;
 			tv_ctx.stroke();
 
 			Object.keys(location_state).forEach(function (driver_number) {
@@ -312,7 +318,9 @@
 				draw_x += (-min_x);
 				draw_y += (-min_y);
 				draw_x = draw_x * ((tv_ctx.canvas.width - (2 * border)) / native_width);
-				draw_y = draw_y * ((tv_ctx.canvas.height - (2 * border)) / native_height);
+				draw_y = draw_y * ((tv_ctx.canvas.width - (2 * border)) / native_width);
+				draw_y = draw_y + ((tv_ctx.canvas.height / 2) -
+					((native_height / 2) * ((tv_ctx.canvas.width - (2 * border)) / native_width)));
 				draw_x += border;
 				draw_y += border;
 				tv_ctx.beginPath();
@@ -322,7 +330,7 @@
 				tv_ctx.fillStyle = '#' + driver_info[driver_number]['team_colour']; //
 				tv_ctx.fill();
 				tv_ctx.stroke();
-				tv_ctx.fillText(driver_info[driver_number]['name_acronym'], draw_x + 10, draw_y);
+				tv_ctx.fillText(driver_info[driver_number]['name_acronym'], draw_x + 10, draw_y - 15);
 			});
 		}
 		function sleep(ms) {
