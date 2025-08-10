@@ -136,7 +136,7 @@
 				ctx.arc(
 					centerX + (lineLength - length / 2) * Math.cos(angle),
 					centerY + (lineLength - length / 2) * Math.sin(angle),
-					20, 0, 2 * Math.PI, false);
+					10, 0, 2 * Math.PI, false);
 				ctx.strokeStyle = 'gray';
 				ctx.lineWidth = 2;
 				ctx.fillStyle = '#00FFFF';
@@ -230,7 +230,7 @@
 
 			Object.keys(interval_state).forEach(function (driver_number) {
 				if (driver_to_track in interval_state) {
-
+     if (driver_number != driver_to_track) {
 					draw_line(mtv_ctx, radius,
 						((Math.PI * 2 * (running_clock
 							+
@@ -243,6 +243,7 @@
 						-
 						(Math.PI / 2.0),
 						20, driver_info[driver_number]['team_colour'], driver_number);
+     }
 				}
 			});
 		}
