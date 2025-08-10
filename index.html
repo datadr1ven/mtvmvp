@@ -300,11 +300,12 @@
 
 		}
 
-		const border = 25;
+		const hborder = 25;
+		const vborder = 75;
 
 		function translate_to_tv_canvas(x, y) {
 			if (native_aspect_ratio < tv_aspect_ratio) {
-				const scale_factor_based_on_height = ((tv_ctx.canvas.height - (2 * border)) / native_height);
+				const scale_factor_based_on_height = ((tv_ctx.canvas.height - (2 * vborder)) / native_height);
 				const scaled_width = native_width * scale_factor_based_on_height;
 				let rx = x;
 				let ry = y;
@@ -312,13 +313,13 @@
 				ry += (-min_y);
 				rx = rx * scale_factor_based_on_height;
 				ry = ry * scale_factor_based_on_height;
-				rx = rx + (((tv_ctx.canvas.width - (2.0 * border)) - scaled_width) / 2.0);
-				rx += border;
-				ry += border;
+				rx = rx + (((tv_ctx.canvas.width - (2.0 * hborder)) - scaled_width) / 2.0);
+				rx += hborder;
+				ry += vborder;
 				ry = tv_ctx.canvas.height - ry;
 				return [rx, ry];
 			} else {
-				const scale_factor_based_on_width = ((tv_ctx.canvas.width - (2 * border)) / native_width);
+				const scale_factor_based_on_width = ((tv_ctx.canvas.width - (2 * hborder)) / native_width);
 				const scaled_height = native_height * scale_factor_based_on_width;
 				let rx = x;
 				let ry = y;
@@ -326,9 +327,9 @@
 				ry += (-min_y);
 				rx = rx * scale_factor_based_on_width;
 				ry = ry * scale_factor_based_on_width;
-				ry = ry + (((tv_ctx.canvas.height - (2.0 * border)) - scaled_height) / 2.0);
-				rx += border;
-				ry += border;
+				ry = ry + (((tv_ctx.canvas.height - (2.0 * vborder)) - scaled_height) / 2.0);
+				rx += hborder;
+				ry += vborder;
 				ry = tv_ctx.canvas.height - ry;
 				return [rx, ry];
 			}
