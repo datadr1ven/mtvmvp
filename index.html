@@ -62,6 +62,7 @@
 			driver_info[driver_data[idx]['driver_number']] = driver_data[idx];
 		}
 
+
 		//year->race name->driver->lap
 		//picker will let you choose race/lap,
 		//which will give us session_key, date
@@ -71,6 +72,13 @@
 		//rv has date_start and lap_duration, compute date_end
 
 		const driver_to_track = "44";
+
+		track_outline = []
+		for (let idx = 0; idx < location_data.length; idx += 1) {
+			if (location_data[idx]['driver_number'] == driver_to_track) {
+				track_outline.push({ x: location_data[idx]['x'], y: location_data[idx]['y'] });
+			}
+		}
 
 		const date_start = new Date(lap_data[0]['date_start']);
 		//lap_duration: 93.693
@@ -114,9 +122,6 @@
 
 
 		const tv_canvas_aspect_ratio = tv_ctx.canvas.width / tv_ctx.canvas.height;
-
-		console.log('track aspect ratio:' + native_aspect_ratio);
-		console.log('window aspect ratio: ' + tv_canvas_aspect_ratio)
 
 		if (native_aspect_ratio > tv_canvas_aspect_ratio) {
 			//scale by width, center by height
@@ -264,6 +269,41 @@
 			tv_ctx.fillStyle = "#000000";
 			tv_ctx.fillRect(0, 0, tv_canvas.width, tv_canvas.height);
 
+			//draw track
+			tv_ctx.beginPath();
+			let draw_x = track_outline[0]['x'];
+			let draw_y = track_outline[0]['y'];
+			draw_x += (-min_x);
+			draw_y += (-min_y);
+			draw_x = draw_x * ((tv_ctx.canvas.width - (2 * border)) / native_width);
+			draw_y = draw_y * ((tv_ctx.canvas.height - (2 * border)) / native_height);
+			draw_x += border;
+			draw_y += border;
+			tv_ctx.moveTo(draw_x, draw_y);
+			for (idx = 1; idx < track_outline.length; idx += 1) {
+				draw_x = track_outline[idx]['x'];
+				draw_y = track_outline[idx]['y'];
+				draw_x += (-min_x);
+				draw_y += (-min_y);
+				draw_x = draw_x * ((tv_ctx.canvas.width - (2 * border)) / native_width);
+				draw_y = draw_y * ((tv_ctx.canvas.height - (2 * border)) / native_height);
+				draw_x += border;
+				draw_y += border;
+				tv_ctx.lineTo(draw_x, draw_y);
+			}
+			draw_x = track_outline[0]['x'];
+			draw_y = track_outline[0]['y'];
+			draw_x += (-min_x);
+			draw_y += (-min_y);
+			draw_x = draw_x * ((tv_ctx.canvas.width - (2 * border)) / native_width);
+			draw_y = draw_y * ((tv_ctx.canvas.height - (2 * border)) / native_height);
+			draw_x += border;
+			draw_y += border;
+			tv_ctx.lineTo(draw_x, draw_y);
+			tv_ctx.strokeStyle = "gray";
+			tv_ctx.lineWidth = 12;
+			tv_ctx.stroke();
+
 			Object.keys(location_state).forEach(function (driver_number) {
 
 				let draw_x = location_state[driver_number][0];
@@ -277,7 +317,7 @@
 				draw_y += border;
 				tv_ctx.beginPath();
 				tv_ctx.arc(draw_x, draw_y, 5, 0, 2 * Math.PI, false);
-				tv_ctx.strokeStyle = 'gray';
+				tv_ctx.strokeStyle = 'black';
 				tv_ctx.lineWidth = 2;
 				tv_ctx.fillStyle = '#' + driver_info[driver_number]['team_colour']; //
 				tv_ctx.fill();
@@ -311,15 +351,12 @@
 				m_location_idx += 1;
 			}
 
-			//console.log(p_cur_time);
-			//console.log(interval_state);
-
 			animate_mtv(interval_state, running_clock, p_cur_time);
 			animate_tv(location_state);
 			running_clock += increment;
 
 			if (p_cur_time > date_end) {
-				console.log('exiting do_the_things');
+				//console.log('exiting do_the_things');
 			} else {
 				p_cur_time.setMilliseconds(p_cur_time.getMilliseconds() + (increment * 1000));
 				//await sleep(increment * 1000);
