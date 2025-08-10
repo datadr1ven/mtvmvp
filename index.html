@@ -30,10 +30,10 @@
 	<script src="mtv-data.js"></script>
 	<script>
 
-		let min_x = 1000000;
-		let min_y = 1000000;
-		let max_x = -1000000;
-		let max_y = -1000000;
+		let min_x = 10000000;
+		let min_y = 10000000;
+		let max_x = -10000000;
+		let max_y = -10000000;
 		for (let idx = 0; idx < location_data.length; idx += 1) {
 			const x = location_data[idx]['x'];
 			const y = location_data[idx]['y'];
@@ -50,9 +50,10 @@
 				max_y = y;
 			}
 		}
-		//console.log('bounding box [' + min_x + ',' + min_y + '->' + max_x + ',' + max_y + ']');
+		console.log('bounding box [' + min_x + ',' + min_y + '->' + max_x + ',' + max_y + ']');
 		const native_width = max_x - min_x;
 		const native_height = max_y - min_y;
+		const native_aspect_ratio = native_width / native_height;
 
 		driver_info = {}
 		for (let idx = 0; idx < driver_data.length; idx += 1) {
@@ -68,7 +69,7 @@
 		//https://api.openf1.org/v1/laps?session_key=9507&driver_number=44&lap_number=14
 		//rv has date_start and lap_duration, compute date_end
 
-		const driver_to_track = "44";
+		const driver_to_track = lap_data[0]["driver_number"];
 
 		track_outline = []
 		for (let idx = 0; idx < location_data.length; idx += 1) {
@@ -81,6 +82,8 @@
 		//lap_duration: 93.693
 		let date_end = new Date(lap_data[0]['date_start']);
 		date_end.setMilliseconds(date_end.getMilliseconds() + (lap_data[0]['lap_duration'] * 1000));
+
+
 		//SHORT: const date_end = "2024-05-05T20:24:28.049000+00:00";
 		//   - interval data
 		//https://api.openf1.org/v1/intervals?session_key=9507&date>DATE_START&date<DATE_END
@@ -94,13 +97,6 @@
 		//  ...and keep head on interval and location
 		//  ...and maintain the latest_known for each display
 
-		function handleResize() {
-			const canvas_height = window.innerHeight;
-			document.getElementById('mtv').width = window.innerWidth / 2.0;
-			document.getElementById('mtv').height = canvas_height;
-			document.getElementById('tv').width = window.innerWidth / 2.0;
-			document.getElementById('tv').height = canvas_height;
-		}
 
 		window.addEventListener('resize', handleResize);
 
@@ -116,6 +112,17 @@
 		const canvas_height = window.innerHeight;
 		mtv_ctx.canvas.height = canvas_height;
 		tv_ctx.canvas.height = canvas_height;
+
+		let tv_aspect_ratio = tv_ctx.canvas.width / tv_ctx.canvas.height;
+
+		function handleResize() {
+			const canvas_height = (window.innerHeight);
+			document.getElementById('mtv').width = window.innerWidth / 2.0;
+			document.getElementById('mtv').height = canvas_height;
+			document.getElementById('tv').width = window.innerWidth / 2.0;
+			document.getElementById('tv').height = canvas_height;
+			tv_aspect_ratio = window.innerWidth / 2.0 / canvas_height;
+		}
 
 		function draw_line(ctx, radius, angle, length, color, driver_number, cyan_ball) {
 
@@ -160,12 +167,23 @@
 			ctx.beginPath();
 
 			if (driver_number) {
+
+				const text_target_gap = 40;
+
+				const targetStartX = centerX + (lineLength + text_target_gap - length) * Math.cos(angle);
+				const targetStartY = centerY + (lineLength + text_target_gap - length) * Math.sin(angle);
+
+				const targetEndX = centerX + (lineLength + text_target_gap) * Math.cos(angle);
+				const targetEndY = centerY + (lineLength + text_target_gap) * Math.sin(angle);
+
+				const text = driver_info[driver_number]['name_acronym'];
+				const metrics = mtv_ctx.measureText(text);
+
 				ctx.fillStyle = "white";
-				if (lineStartX > lineEndX) {
-					ctx.fillText(driver_info[driver_number]['name_acronym'], lineStartX, lineStartY);
-				} else {
-					ctx.fillText(driver_info[driver_number]['name_acronym'], lineEndX, lineEndY);
-				}
+				ctx.fillText(text,
+					targetStartX - (metrics.width / 2),
+					targetStartY + (metrics.fontBoundingBoxAscent / 2));
+
 			}
 		}
 
@@ -179,11 +197,28 @@
 			const centerY = mtv_ctx.canvas.height / 2;
 			const radius = Math.min(centerX / 1.5, centerY / 1.5);
 
-
 			mtv_ctx.fillStyle = "white";
-			mtv_ctx.font = '12px sans-serif';
-			mtv_ctx.fillText('Lap 14', centerX - 20, centerY);
-			mtv_ctx.fillText(date_cur_time.toLocaleString(), centerX - 45, centerY + 15);
+			mtv_ctx.font = '14px sans-serif';
+			const text = 'Lap ' + lap_data[0]['lap_number'];
+			const metrics = mtv_ctx.measureText(text);
+			mtv_ctx.fillText(text, centerX - (metrics.width / 2), centerY - metrics.fontBoundingBoxAscent);
+			const formattedTime = date_cur_time.toLocaleTimeString('en-US', {
+				hour: '2-digit',
+				minute: '2-digit',
+				second: '2-digit',
+				hour12: false // Use 24-hour format for consistency
+			});
+
+			// Get the milliseconds
+			const milliseconds = date_cur_time.getMilliseconds();
+
+			// Pad milliseconds with leading zeros if needed
+			const paddedMilliseconds = String(milliseconds).padStart(3, '0');
+
+			// Combine the formatted time and milliseconds
+			const fullTimeWithMillis = `${formattedTime}.${paddedMilliseconds}`;
+			const metrics_time = mtv_ctx.measureText(fullTimeWithMillis);
+			mtv_ctx.fillText(fullTimeWithMillis, centerX - (metrics_time.width / 2), centerY);
 
 
 			mtv_ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
@@ -219,6 +254,42 @@
 				(Math.PI / 2.0),
 				20, driver_info[driver_to_track]['team_colour'], driver_to_track, true);
 
+
+
+			Object.keys(interval_state).forEach(function (driver_number) {
+				if (driver_to_track in interval_state) {
+					if (driver_number != driver_to_track) {
+						draw_line(mtv_ctx, radius,
+							((Math.PI * 2 * (running_clock
+								+
+								(interval_state[driver_to_track]
+									-
+									interval_state[driver_number]
+								)))
+								/
+								lap_data[0]['lap_duration'])
+							-
+							(Math.PI / 2.0),
+							20, driver_info[driver_number]['team_colour'], driver_number);
+					}
+				} else {
+					/* this was logic to handle when leader is driver_to_track
+					if (driver_number != driver_to_track) {
+						draw_line(mtv_ctx, radius,
+							((Math.PI * 2 * (running_clock
+								-
+								interval_state[driver_number]
+							))
+								/
+								lap_data[0]['lap_duration'])
+							-
+							(Math.PI / 2.0),
+							20, driver_info[driver_number]['team_colour'], driver_number);
+					}
+					*/
+
+				}
+			});
 			draw_line(mtv_ctx, radius,
 				((Math.PI * 2 * (running_clock))
 					/
@@ -227,28 +298,41 @@
 				(Math.PI / 2.0),
 				20, 'FF00FF', driver_to_track, false);
 
-
-			Object.keys(interval_state).forEach(function (driver_number) {
-				if (driver_to_track in interval_state) {
-     if (driver_number != driver_to_track) {
-					draw_line(mtv_ctx, radius,
-						((Math.PI * 2 * (running_clock
-							+
-							(interval_state[driver_to_track]
-								-
-								interval_state[driver_number]
-							)))
-							/
-							lap_data[0]['lap_duration'])
-						-
-						(Math.PI / 2.0),
-						20, driver_info[driver_number]['team_colour'], driver_number);
-     }
-				}
-			});
 		}
 
-		const border = 30;
+		const border = 25;
+
+		function translate_to_tv_canvas(x, y) {
+			if (native_aspect_ratio < tv_aspect_ratio) {
+				const scale_factor_based_on_height = ((tv_ctx.canvas.height - (2 * border)) / native_height);
+				const scaled_width = native_width * scale_factor_based_on_height;
+				let rx = x;
+				let ry = y;
+				rx += (-min_x);
+				ry += (-min_y);
+				rx = rx * scale_factor_based_on_height;
+				ry = ry * scale_factor_based_on_height;
+				rx = rx + (((tv_ctx.canvas.width - (2.0 * border)) - scaled_width) / 2.0);
+				rx += border;
+				ry += border;
+				ry = tv_ctx.canvas.height - ry;
+				return [rx, ry];
+			} else {
+				const scale_factor_based_on_width = ((tv_ctx.canvas.width - (2 * border)) / native_width);
+				const scaled_height = native_height * scale_factor_based_on_width;
+				let rx = x;
+				let ry = y;
+				rx += (-min_x);
+				ry += (-min_y);
+				rx = rx * scale_factor_based_on_width;
+				ry = ry * scale_factor_based_on_width;
+				ry = ry + (((tv_ctx.canvas.height - (2.0 * border)) - scaled_height) / 2.0);
+				rx += border;
+				ry += border;
+				ry = tv_ctx.canvas.height - ry;
+				return [rx, ry];
+			}
+		}
 
 		function animate_tv(locations_state) {
 
@@ -258,40 +342,13 @@
 
 			//draw track
 			tv_ctx.beginPath();
-			let draw_x = track_outline[0]['x'];
-			let draw_y = track_outline[0]['y'];
-			draw_x += (-min_x);
-			draw_y += (-min_y);
-			draw_x = draw_x * ((tv_ctx.canvas.width - (2 * border)) / native_width);
-			draw_y = draw_y * ((tv_ctx.canvas.width - (2 * border)) / native_width);
-			draw_y = draw_y + ((tv_ctx.canvas.height / 2) -
-				((native_height / 2) * ((tv_ctx.canvas.width - (2 * border)) / native_width)));
-			draw_x += border;
-			draw_y += border;
+			let [draw_x, draw_y] = translate_to_tv_canvas(track_outline[0]['x'], track_outline[0]['y']);
 			tv_ctx.moveTo(draw_x, draw_y);
 			for (idx = 1; idx < track_outline.length; idx += 1) {
-				draw_x = track_outline[idx]['x'];
-				draw_y = track_outline[idx]['y'];
-				draw_x += (-min_x);
-				draw_y += (-min_y);
-				draw_x = draw_x * ((tv_ctx.canvas.width - (2 * border)) / native_width);
-				draw_y = draw_y * ((tv_ctx.canvas.width - (2 * border)) / native_width);
-				draw_y = draw_y + ((tv_ctx.canvas.height / 2) -
-					((native_height / 2) * ((tv_ctx.canvas.width - (2 * border)) / native_width)));
-				draw_x += border;
-				draw_y += border;
+				[draw_x, draw_y] = translate_to_tv_canvas(track_outline[idx]['x'], track_outline[idx]['y']);
 				tv_ctx.lineTo(draw_x, draw_y);
 			}
-			draw_x = track_outline[0]['x'];
-			draw_y = track_outline[0]['y'];
-			draw_x += (-min_x);
-			draw_y += (-min_y);
-			draw_x = draw_x * ((tv_ctx.canvas.width - (2 * border)) / native_width);
-			draw_y = draw_y * ((tv_ctx.canvas.width - (2 * border)) / native_width);
-			draw_y = draw_y + ((tv_ctx.canvas.height / 2) -
-				((native_height / 2) * ((tv_ctx.canvas.width - (2 * border)) / native_width)));
-			draw_x += border;
-			draw_y += border;
+			[draw_x, draw_y] = translate_to_tv_canvas(track_outline[0]['x'], track_outline[0]['y']);
 			tv_ctx.lineTo(draw_x, draw_y);
 			tv_ctx.strokeStyle = "gray";
 			tv_ctx.lineWidth = 9;
@@ -299,17 +356,7 @@
 
 			Object.keys(location_state).forEach(function (driver_number) {
 
-				let draw_x = location_state[driver_number][0];
-				let draw_y = location_state[driver_number][1];
-
-				draw_x += (-min_x);
-				draw_y += (-min_y);
-				draw_x = draw_x * ((tv_ctx.canvas.width - (2 * border)) / native_width);
-				draw_y = draw_y * ((tv_ctx.canvas.width - (2 * border)) / native_width);
-				draw_y = draw_y + ((tv_ctx.canvas.height / 2) -
-					((native_height / 2) * ((tv_ctx.canvas.width - (2 * border)) / native_width)));
-				draw_x += border;
-				draw_y += border;
+				let [draw_x, draw_y] = translate_to_tv_canvas(location_state[driver_number][0], location_state[driver_number][1]);
 				tv_ctx.beginPath();
 				tv_ctx.arc(draw_x, draw_y, 5, 0, 2 * Math.PI, false);
 				tv_ctx.strokeStyle = 'black';
@@ -327,7 +374,7 @@
 		let interval_state = {};
 		let location_state = {};
 		let running_clock = 0.0;
-		const increment = .15;
+		const increment = .01;
 
 		async function do_the_things_and_wait(p_cur_time, p_date_date_end, p_interval_idx, p_location_idx) {
 
@@ -355,7 +402,7 @@
 			} else {
 				p_cur_time.setMilliseconds(p_cur_time.getMilliseconds() + (increment * 1000));
 				//await sleep(increment * 1000);
-				await sleep(100);
+				await sleep(9);
 				do_the_things_and_wait(p_cur_time, p_date_date_end, m_interval_idx, m_location_idx);
 			}
 		}
