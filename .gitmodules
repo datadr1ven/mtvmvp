@@ -1,4 +1,0 @@
-[submodule "upgrade"]
-	path = upgrade
-	url = git@github.com:datadr1ven/mtvmvp.git
-	branch = upgrade
